@@ -1,92 +1,90 @@
 /**
- * Restaurant Model
+ * Restaurant Model (MVP-SAFE)
  */
 
 const mongoose = require('mongoose');
 
 const restaurantSchema = new mongoose.Schema(
   {
+    // Core Info
     name: {
       type: String,
       required: [true, 'Restaurant name is required'],
       trim: true,
     },
-    description: String,
+
+    description: {
+      type: String,
+    },
+
     city: {
       type: String,
       required: true,
       index: true,
     },
-    address: {
-      street: String,
-      zipCode: String,
+
+    // Cuisine & Pricing
+    cuisines: {
+      type: [String], // e.g. ["North Indian", "Chinese"]
+      default: [],
     },
-    location: {
-      type: {
-        type: String,
-        enum: ['Point'],
-        default: 'Point',
+
+    priceRange: {
+      type: String, // ₹ / ₹₹ / ₹₹₹
+      enum: ['₹', '₹₹', '₹₹₹'],
+      default: '₹₹',
+    },
+
+    // Menu (EMBEDDED — SIMPLE)
+    menu: [
+      {
+        name: String,
+        category: {
+          type: String, // Starter / Main / Dessert
+        },
+        price: Number,
       },
-      coordinates: [Number],
+    ],
+
+    // Nearby Context (NO MAPS)
+    nearby: {
+      places: {
+        type: [String],
+        default: [],
+      },
+      transport: {
+        type: [String],
+        default: [],
+      },
     },
-    cuisines: [String], // ['Italian', 'Chinese', 'Indian', etc]
+
     images: [
       {
         url: String,
-        publicId: String,
       },
     ],
+
+    // Ownership
     owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
+      required: true,
     },
-    menu: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'FoodItem',
-      },
-    ],
+
+    // Ratings (derived later)
     rating: {
       type: Number,
       min: 0,
       max: 5,
       default: 0,
     },
+
     reviewCount: {
       type: Number,
       default: 0,
     },
-    reviews: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Review',
-      },
-    ],
-    openingHours: {
-      monday: { open: String, close: String },
-      tuesday: { open: String, close: String },
-      wednesday: { open: String, close: String },
-      thursday: { open: String, close: String },
-      friday: { open: String, close: String },
-      saturday: { open: String, close: String },
-      sunday: { open: String, close: String },
-    },
-    deliveryTime: {
-      type: Number,
-      default: 30, // minutes
-    },
-    minimumOrderValue: {
-      type: Number,
-      default: 0,
-    },
-    deliveryRadius: {
-      type: Number,
-      default: 5, // km
-    },
-    acceptOrders: {
-      type: Boolean,
-      default: true,
-    },
+
+    // Status
     isActive: {
       type: Boolean,
       default: true,
@@ -94,7 +92,7 @@ const restaurantSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    indexes: [{ location: '2dsphere' }, { city: 1 }],
+    indexes: [{ city: 1 }],
   }
 );
 

@@ -1,19 +1,40 @@
 /**
- * Restaurant Routes
+ * Restaurant Routes (MVP)
  */
 
 const express = require('express');
 const router = express.Router();
+
 const { verifyToken, authorize } = require('../middleware/auth');
 const restaurantController = require('../controllers/restaurantController');
 
-// Public routes
+// ====================
+// Public Routes
+// ====================
+
+// Get all restaurants (city filters)
 router.get('/', restaurantController.getAllRestaurants);
-router.get('/nearby', restaurantController.getNearbyRestaurants);
+
+// Get restaurant details
 router.get('/:id', restaurantController.getRestaurantDetails);
 
-// Private routes
-router.post('/', verifyToken, authorize('admin', 'local'), restaurantController.createRestaurant);
-router.post('/:id/menu', verifyToken, restaurantController.addFoodItem);
+// ====================
+// Private Routes
+// ====================
+
+// Create restaurant (admin / local)
+router.post(
+  '/',
+  verifyToken,
+  authorize('admin', 'local'),
+  restaurantController.createRestaurant
+);
+
+// Update restaurant (menu, info)
+router.put(
+  '/:id',
+  verifyToken,
+  restaurantController.updateRestaurant
+);
 
 module.exports = router;

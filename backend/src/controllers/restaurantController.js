@@ -1,29 +1,38 @@
 /**
- * Restaurant Controller
+ * Restaurant Controller (MVP)
  */
 
 const Restaurant = require('../models/Restaurant');
-const FoodItem = require('../models/FoodItem');
 
+// ==============================
+// CREATE RESTAURANT
+// ==============================
 // @route   POST /api/v1/restaurants
 // @desc    Create restaurant
-// @access  Private (Admin/Restaurant Owner)
+// @access  Private (Admin / Local)
 exports.createRestaurant = async (req, res, next) => {
   try {
-    const { name, description, city, cuisines, openingHours, deliveryTime } = req.body;
+    const {
+      name,
+      description,
+      city,
+      cuisines,
+      priceRange,
+      menu,
+      nearby,
+      images,
+    } = req.body;
 
     const restaurant = new Restaurant({
       name,
       description,
       city,
       cuisines: cuisines || [],
-      openingHours: openingHours || {},
-      deliveryTime: deliveryTime || 30,
+      priceRange: priceRange || '₹₹',
+      menu: menu || [],
+      nearby: nearby || {},
+      images: images || [],
       owner: req.user.id,
-      location: {
-        type: 'Point',
-        coordinates: req.body.coordinates || [0, 0],
-      },
     });
 
     await restaurant.save();
@@ -38,26 +47,40 @@ exports.createRestaurant = async (req, res, next) => {
   }
 };
 
+// ==============================
+// GET ALL RESTAURANTS (CITY-BASED)
+// ==============================
 // @route   GET /api/v1/restaurants
-// @desc    Get all restaurants with filters
+// @desc    Get restaurants by city with filters
 // @access  Public
 exports.getAllRestaurants = async (req, res, next) => {
   try {
-    const { city, cuisines, minRating, maxDeliveryTime } = req.query;
-    const filter = { isActive: true, acceptOrders: true };
+    const { city, cuisines, priceRange, rating } = req.query;
 
-    if (city) filter.city = new RegExp(city, 'i');
+    const filter = { isActive: true };
+
+    if (city) {
+      filter.city = new RegExp(`^${city}$`, 'i');
+    }
+
     if (cuisines) {
-      const cuisineArray = Array.isArray(cuisines) ? cuisines : [cuisines];
+      const cuisineArray = Array.isArray(cuisines)
+        ? cuisines
+        : cuisines.split(',');
       filter.cuisines = { $in: cuisineArray };
     }
-    if (minRating) filter.rating = { $gte: parseFloat(minRating) };
-    if (maxDeliveryTime) filter.deliveryTime = { $lte: parseInt(maxDeliveryTime) };
+
+    if (priceRange) {
+      filter.priceRange = priceRange;
+    }
+
+    if (rating) {
+      filter.rating = { $gte: Number(rating) };
+    }
 
     const restaurants = await Restaurant.find(filter)
-      .populate('menu')
-      .limit(50)
-      .exec();
+      .sort({ rating: -1 })
+      .limit(50);
 
     res.status(200).json({
       success: true,
@@ -69,21 +92,18 @@ exports.getAllRestaurants = async (req, res, next) => {
   }
 };
 
+// ==============================
+// GET RESTAURANT DETAILS
+// ==============================
 // @route   GET /api/v1/restaurants/:id
 // @desc    Get restaurant details
 // @access  Public
 exports.getRestaurantDetails = async (req, res, next) => {
   try {
-    const restaurant = await Restaurant.findById(req.params.id)
-      .populate('menu')
-      .populate({
-        path: 'reviews',
-        populate: {
-          path: 'userId',
-          select: 'firstName lastName avatar',
-        },
-      })
-      .populate('owner', 'firstName lastName email phone');
+    const restaurant = await Restaurant.findById(req.params.id).populate(
+      'owner',
+      'firstName lastName'
+    );
 
     if (!restaurant) {
       return res.status(404).json({
@@ -101,49 +121,13 @@ exports.getRestaurantDetails = async (req, res, next) => {
   }
 };
 
-// @route   GET /api/v1/restaurants/nearby
-// @desc    Get nearby restaurants
-// @access  Public
-exports.getNearbyRestaurants = async (req, res, next) => {
-  try {
-    const { latitude, longitude, distance = 10 } = req.query;
-
-    if (!latitude || !longitude) {
-      return res.status(400).json({
-        success: false,
-        message: 'Latitude and longitude are required',
-      });
-    }
-
-    const restaurants = await Restaurant.find({
-      isActive: true,
-      location: {
-        $near: {
-          $geometry: {
-            type: 'Point',
-            coordinates: [parseFloat(longitude), parseFloat(latitude)],
-          },
-          $maxDistance: parseFloat(distance) * 1000,
-        },
-      },
-    })
-      .populate('menu')
-      .limit(20);
-
-    res.status(200).json({
-      success: true,
-      count: restaurants.length,
-      data: restaurants,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// @route   POST /api/v1/restaurants/:id/menu
-// @desc    Add food item to menu
-// @access  Private (Restaurant Owner)
-exports.addFoodItem = async (req, res, next) => {
+// ==============================
+// UPDATE RESTAURANT
+// ==============================
+// @route   PUT /api/v1/restaurants/:id
+// @desc    Update restaurant (menu, info)
+// @access  Private (Owner / Admin)
+exports.updateRestaurant = async (req, res, next) => {
   try {
     const restaurant = await Restaurant.findById(req.params.id);
 
@@ -154,35 +138,29 @@ exports.addFoodItem = async (req, res, next) => {
       });
     }
 
-    if (restaurant.owner.toString() !== req.user.id && req.user.role !== 'admin') {
+    if (
+      restaurant.owner.toString() !== req.user.id &&
+      req.user.role !== 'admin'
+    ) {
       return res.status(403).json({
         success: false,
-        message: 'Not authorized',
+        message: 'Not authorized to update this restaurant',
       });
     }
 
-    const { name, description, price, category, isVegetarian, preparationTime } = req.body;
+    const updatedRestaurant = await Restaurant.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
 
-    const foodItem = new FoodItem({
-      restaurantId: restaurant._id,
-      name,
-      description,
-      price,
-      category,
-      isVegetarian: isVegetarian || false,
-      preparationTime: preparationTime || 15,
-    });
-
-    await foodItem.save();
-
-    // Add to restaurant menu
-    restaurant.menu.push(foodItem._id);
-    await restaurant.save();
-
-    res.status(201).json({
+    res.status(200).json({
       success: true,
-      message: 'Food item added successfully',
-      data: foodItem,
+      message: 'Restaurant updated successfully',
+      data: updatedRestaurant,
     });
   } catch (error) {
     next(error);
