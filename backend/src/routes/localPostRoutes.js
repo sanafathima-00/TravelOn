@@ -1,21 +1,39 @@
 /**
- * Local Post Routes
+ * Local Post Routes (MVP)
  */
 
 const express = require('express');
 const router = express.Router();
+
 const { verifyToken } = require('../middleware/auth');
-const validateRequest = require('../middleware/validation');
-const { localPostSchema } = require('../validators/schemas');
 const localPostController = require('../controllers/localPostController');
 
-// Public routes
+// ====================
+// Public Routes
+// ====================
+
+// Get all local posts (city-based)
 router.get('/', localPostController.getLocalPosts);
+
+// Get single post details
 router.get('/:id', localPostController.getPostDetails);
 
-// Private routes
-router.post('/', verifyToken, validateRequest(localPostSchema), localPostController.createLocalPost);
-router.post('/:id/upvote', verifyToken, localPostController.upvotePost);
-router.post('/:id/comment', verifyToken, localPostController.addComment);
+// ====================
+// Private Routes
+// ====================
+
+// Create local post (locals only)
+router.post(
+  '/',
+  verifyToken,
+  localPostController.createLocalPost
+);
+
+// Upvote a post
+router.post(
+  '/:id/upvote',
+  verifyToken,
+  localPostController.upvotePost
+);
 
 module.exports = router;
