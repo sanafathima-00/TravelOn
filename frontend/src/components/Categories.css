@@ -1,0 +1,28 @@
+.categories {
+  padding: 40px;
+  background-color: #0f1115;
+}
+
+.categories h2 {
+  font-size: 20px;
+  margin-bottom: 20px;
+}
+
+.category-list {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+}
+
+.category-card {
+  min-width: 160px;
+  height: 90px;
+  background: #181b20;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f2f2f2;
+  font-size: 14px;
+  cursor: pointer;
+}
