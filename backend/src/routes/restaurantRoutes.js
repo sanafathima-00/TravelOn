@@ -1,40 +1,28 @@
-/**
- * Restaurant Routes (MVP)
- */
-
 const express = require('express');
+const { validate } = require('../middleware/validate');
+const { protect } = require('../middleware/auth');
+const { authorize } = require('../middleware/authorize');
+const {
+  createRestaurantSchema,
+  addMenuItemSchema,
+  queryRestaurantSchema,
+  nearbyRestaurantSchema
+} = require('../validators/restaurantValidator');
+const {
+  getRestaurants,
+  getRestaurantById,
+  getNearbyRestaurants,
+  createRestaurant,
+  addMenuItem
+} = require('../controllers/restaurantController');
+
 const router = express.Router();
 
-const { verifyToken, authorize } = require('../middleware/auth');
-const restaurantController = require('../controllers/restaurantController');
+router.get('/', validate(queryRestaurantSchema, { source: 'query' }), getRestaurants);
+router.get('/nearby', validate(nearbyRestaurantSchema, { source: 'query' }), getNearbyRestaurants);
+router.get('/:id', getRestaurantById);
 
-// ====================
-// Public Routes
-// ====================
-
-// Get all restaurants (city filters)
-router.get('/', restaurantController.getAllRestaurants);
-
-// Get restaurant details
-router.get('/:id', restaurantController.getRestaurantDetails);
-
-// ====================
-// Private Routes
-// ====================
-
-// Create restaurant (admin / local)
-router.post(
-  '/',
-  verifyToken,
-  authorize('admin', 'local'),
-  restaurantController.createRestaurant
-);
-
-// Update restaurant (menu, info)
-router.put(
-  '/:id',
-  verifyToken,
-  restaurantController.updateRestaurant
-);
+router.post('/', protect, authorize('admin', 'local'), validate(createRestaurantSchema), createRestaurant);
+router.post('/:id/menu', protect, validate(addMenuItemSchema), addMenuItem);
 
 module.exports = router;

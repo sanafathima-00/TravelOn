@@ -1,144 +1,63 @@
-/**
- * Local Post Controller (MVP)
- */
-
 const LocalPost = require('../models/LocalPost');
+const { ApiError } = require('../utils/ApiError');
 
-// ==============================
-// CREATE LOCAL POST
-// ==============================
-// @route   POST /api/v1/local-posts
-// @desc    Create a local post
-// @access  Private (Local users only)
-exports.createLocalPost = async (req, res, next) => {
-  try {
-    if (req.user.role !== 'local') {
-      return res.status(403).json({
-        success: false,
-        message: 'Only locals can create posts',
-      });
-    }
-
-    const { city, postType, title, content, tags } = req.body;
-
-    if (!city || !postType || !title || !content) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required fields',
-      });
-    }
-
-    const post = new LocalPost({
-      author: req.user.id,
-      city,
-      postType,
-      title,
-      content,
-      tags: tags || [],
-    });
-
-    await post.save();
-
-    res.status(201).json({
-      success: true,
-      message: 'Local post created successfully',
-      data: post,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// ==============================
-// GET LOCAL POSTS (CITY BASED)
-// ==============================
-// @route   GET /api/v1/local-posts
-// @desc    Get local posts by city
-// @access  Public
 exports.getLocalPosts = async (req, res, next) => {
   try {
-    const { city, postType } = req.query;
+    const { city, postType, tags, page, limit } = req.validated || {};
+    const filter = { isHidden: false };
+    if (city) filter.city = new RegExp(city, 'i');
+    if (postType) filter.postType = postType;
+    if (tags && tags.length) filter.tags = { $in: tags };
 
-    const filter = { isActive: true };
-
-    if (city) {
-      filter.city = new RegExp(`^${city}$`, 'i');
-    }
-
-    if (postType) {
-      filter.postType = postType;
-    }
-
-    const posts = await LocalPost.find(filter)
-      .populate('author', 'firstName lastName')
-      .sort({ createdAt: -1 })
-      .limit(50);
-
-    res.status(200).json({
-      success: true,
-      count: posts.length,
-      data: posts,
-    });
-  } catch (error) {
-    next(error);
+    const skip = (page - 1) * limit;
+    const [posts, total] = await Promise.all([
+      LocalPost.find(filter).populate('userId', 'name').sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      LocalPost.countDocuments(filter)
+    ]);
+    res.json({ success: true, data: posts, total, page, limit });
+  } catch (err) {
+    next(err);
   }
 };
 
-// ==============================
-// GET POST DETAILS
-// ==============================
-// @route   GET /api/v1/local-posts/:id
-// @desc    Get post details
-// @access  Public
-exports.getPostDetails = async (req, res, next) => {
+exports.getLocalPostById = async (req, res, next) => {
   try {
-    const post = await LocalPost.findById(req.params.id).populate(
-      'author',
-      'firstName lastName'
-    );
-
-    if (!post) {
-      return res.status(404).json({
-        success: false,
-        message: 'Post not found',
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      data: post,
-    });
-  } catch (error) {
-    next(error);
+    const post = await LocalPost.findOne({ _id: req.params.id, isHidden: false })
+      .populate('userId', 'name');
+    if (!post) return next(new ApiError(404, 'Post not found'));
+    res.json({ success: true, data: post });
+  } catch (err) {
+    next(err);
   }
 };
 
-// ==============================
-// UPVOTE POST (SIMPLE)
-// ==============================
-// @route   POST /api/v1/local-posts/:id/upvote
-// @desc    Upvote a post
-// @access  Private
+exports.createLocalPost = async (req, res, next) => {
+  try {
+    const v = req.validated;
+    const post = await LocalPost.create({
+      userId: req.user._id,
+      city: v.city,
+      postType: v.postType,
+      title: v.title,
+      content: v.content,
+      tags: v.tags || []
+    });
+    res.status(201).json({ success: true, data: post });
+  } catch (err) {
+    next(err);
+  }
+};
+
 exports.upvotePost = async (req, res, next) => {
   try {
-    const post = await LocalPost.findById(req.params.id);
-
-    if (!post) {
-      return res.status(404).json({
-        success: false,
-        message: 'Post not found',
-      });
-    }
-
-    post.upvotes += 1;
-    await post.save();
-
-    res.status(200).json({
-      success: true,
-      message: 'Post upvoted',
-      upvotes: post.upvotes,
-    });
-  } catch (error) {
-    next(error);
+    const post = await LocalPost.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { upvotes: 1 } },
+      { new: true }
+    );
+    if (!post) return next(new ApiError(404, 'Post not found'));
+    res.json({ success: true, data: { upvotes: post.upvotes } });
+  } catch (err) {
+    next(err);
   }
 };

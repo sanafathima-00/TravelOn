@@ -1,43 +1,32 @@
-/**
- * Hotel Routes (MVP)
- */
-
 const express = require('express');
+const { validate } = require('../middleware/validate');
+const { protect } = require('../middleware/auth');
+const { authorize } = require('../middleware/authorize');
+const {
+  createHotelSchema,
+  updateHotelSchema,
+  queryHotelSchema,
+  nearbySchema
+} = require('../validators/hotelValidator');
+const {
+  getHotels,
+  getHotelById,
+  getNearbyHotels,
+  createHotel,
+  updateHotel
+} = require('../controllers/hotelController');
+const { getHotelReviews, createHotelReview } = require('../controllers/reviewController');
+const { createReviewSchema } = require('../validators/reviewValidator');
+
 const router = express.Router();
 
-const { verifyToken, authorize } = require('../middleware/auth');
-const validateRequest = require('../middleware/validation');
-const { hotelSchema } = require('../validators/schemas');
-const hotelController = require('../controllers/hotelController');
+router.get('/', validate(queryHotelSchema, { source: 'query' }), getHotels);
+router.get('/nearby', validate(nearbySchema, { source: 'query' }), getNearbyHotels);
+router.get('/:id', getHotelById);
+router.get('/:id/reviews', getHotelReviews);
 
-// ====================
-// Public Routes
-// ====================
-
-// Get all hotels (city, rating, price filters)
-router.get('/', hotelController.getAllHotels);
-
-// Get single hotel details
-router.get('/:id', hotelController.getHotelDetails);
-
-// ====================
-// Private Routes
-// ====================
-
-// Create hotel (admin / local)
-router.post(
-  '/',
-  verifyToken,
-  authorize('admin', 'local'),
-  validateRequest(hotelSchema),
-  hotelController.createHotel
-);
-
-// Update hotel (owner / admin)
-router.put(
-  '/:id',
-  verifyToken,
-  hotelController.updateHotel
-);
+router.post('/', protect, authorize('admin', 'local'), validate(createHotelSchema), createHotel);
+router.post('/:id/reviews', protect, validate(createReviewSchema), createHotelReview);
+router.put('/:id', protect, validate(updateHotelSchema), updateHotel);
 
 module.exports = router;

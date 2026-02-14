@@ -1,181 +1,77 @@
-/**
- * Authentication Controller
- */
-
+const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const { generateAccessToken, generateRefreshToken } = require('../utils/jwt');
-const { AppError } = require('../middleware/errorHandler');
+const { ApiError } = require('../utils/ApiError');
 
-// @route   POST /api/v1/auth/signup
-// @desc    Register a new user
-// @access  Public
-exports.signup = async (req, res, next) => {
+const accessTokenExpiry = '15m';
+const refreshTokenExpiry = '7d';
+
+const generateTokens = (userId) => {
+  const access = jwt.sign(
+    { id: userId },
+    process.env.JWT_SECRET,
+    { expiresIn: accessTokenExpiry }
+  );
+  const refresh = jwt.sign(
+    { id: userId },
+    process.env.JWT_REFRESH_SECRET,
+    { expiresIn: refreshTokenExpiry }
+  );
+  return { accessToken: access, refreshToken: refresh };
+};
+
+exports.register = async (req, res, next) => {
   try {
-    const { firstName, lastName, email, password, role } = req.body;
-
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: 'User with this email already exists',
-      });
-    }
-
-    // Create new user
-    const user = new User({
-      firstName,
-      lastName,
-      email,
-      password,
-      role: role || 'tourist',
-    });
-
-    await user.save();
-
-    // Generate tokens
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user);
-
+    const { name, email, password, role } = req.validated;
+    const existing = await User.findOne({ email });
+    if (existing) return next(new ApiError(400, 'Email already registered'));
+    const user = await User.create({ name, email, password, role });
+    const tokens = generateTokens(user._id);
     res.status(201).json({
       success: true,
-      message: 'User registered successfully',
-      data: {
-        user: {
-          id: user._id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          role: user.role,
-        },
-        accessToken,
-        refreshToken,
-      },
+      user: { id: user._id, name: user.name, email: user.email, role: user.role },
+      ...tokens
     });
-  } catch (error) {
-    next(error);
+  } catch (err) {
+    next(err);
   }
 };
 
-// @route   POST /api/v1/auth/login
-// @desc    Authenticate user and get tokens
-// @access  Public
 exports.login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
-
-    // Validate input
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email and password are required',
-      });
-    }
-
-    // Find user and explicitly select password
+    const { email, password } = req.validated;
     const user = await User.findOne({ email }).select('+password');
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials',
-      });
+    if (!user || !(await user.comparePassword(password))) {
+      return next(new ApiError(401, 'Invalid email or password'));
     }
-
-    // Compare password
-    const isPasswordMatch = await user.matchPassword(password);
-    if (!isPasswordMatch) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials',
-      });
-    }
-
-    // Update last login
-    user.lastLogin = new Date();
-    await user.save();
-
-    // Generate tokens
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user);
-
-    res.status(200).json({
+    const tokens = generateTokens(user._id);
+    res.json({
       success: true,
-      message: 'Login successful',
-      data: {
-        user: {
-          id: user._id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          role: user.role,
-          avatar: user.avatar,
-        },
-        accessToken,
-        refreshToken,
-      },
+      user: { id: user._id, name: user.name, email: user.email, role: user.role },
+      ...tokens
     });
-  } catch (error) {
-    next(error);
+  } catch (err) {
+    next(err);
   }
 };
 
-// @route   POST /api/v1/auth/refresh
-// @desc    Get new access token using refresh token
-// @access  Public
-exports.refreshAccessToken = async (req, res, next) => {
+exports.refreshToken = async (req, res, next) => {
   try {
-    const { refreshToken } = req.body;
-
-    if (!refreshToken) {
-      return res.status(400).json({
-        success: false,
-        message: 'Refresh token is required',
-      });
-    }
-
+    const { refreshToken } = req.validated;
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
     const user = await User.findById(decoded.id);
-
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'User not found',
-      });
-    }
-
-    const newAccessToken = generateAccessToken(user);
-
-    res.status(200).json({
-      success: true,
-      accessToken: newAccessToken,
-    });
-  } catch (error) {
-    return res.status(401).json({
-      success: false,
-      message: 'Invalid refresh token',
-    });
+    if (!user) return next(new ApiError(401, 'User not found'));
+    const tokens = generateTokens(user._id);
+    res.json({ success: true, ...tokens });
+  } catch (err) {
+    next(err);
   }
 };
 
-// @route   GET /api/v1/auth/me
-// @desc    Get current user profile
-// @access  Private
-exports.getProfile = async (req, res, next) => {
+exports.getMe = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found',
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      data: user,
-    });
-  } catch (error) {
-    next(error);
+    res.json({ success: true, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
+  } catch (err) {
+    next(err);
   }
 };

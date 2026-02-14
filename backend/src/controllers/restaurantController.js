@@ -1,168 +1,103 @@
-/**
- * Restaurant Controller (MVP)
- */
-
 const Restaurant = require('../models/Restaurant');
+const FoodItem = require('../models/FoodItem');
+const { ApiError } = require('../utils/ApiError');
 
-// ==============================
-// CREATE RESTAURANT
-// ==============================
-// @route   POST /api/v1/restaurants
-// @desc    Create restaurant
-// @access  Private (Admin / Local)
+exports.getRestaurants = async (req, res, next) => {
+  try {
+    const { city, cuisines, minRating, maxDeliveryTime, page, limit } = req.validated || {};
+    const filter = { isActive: true };
+    if (city) filter.city = new RegExp(city, 'i');
+    if (minRating != null) filter.rating = { $gte: minRating };
+    if (cuisines && cuisines.length) filter.cuisines = { $in: cuisines };
+    if (maxDeliveryTime != null) filter.deliveryTime = { $lte: maxDeliveryTime };
+
+    const skip = (page - 1) * limit;
+    const [restaurants, total] = await Promise.all([
+      Restaurant.find(filter).populate('owner', 'name email').sort({ rating: -1 }).skip(skip).limit(limit).lean(),
+      Restaurant.countDocuments(filter)
+    ]);
+    res.json({ success: true, data: restaurants, total, page, limit });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.getRestaurantById = async (req, res, next) => {
+  try {
+    const restaurant = await Restaurant.findById(req.params.id).populate('owner', 'name email');
+    if (!restaurant) return next(new ApiError(404, 'Restaurant not found'));
+    const menu = await FoodItem.find({ restaurantId: restaurant._id }).lean();
+    res.json({ success: true, data: { ...restaurant.toObject(), menu } });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.getNearbyRestaurants = async (req, res, next) => {
+  try {
+    const { longitude, latitude, maxDistance } = req.validated || req.query;
+    const lon = Number(longitude);
+    const lat = Number(latitude);
+    const max = Number(maxDistance) || 5000;
+    const restaurants = await Restaurant.find({
+      isActive: true,
+      location: {
+        $nearSphere: {
+          $geometry: { type: 'Point', coordinates: [lon, lat] },
+          $maxDistance: max
+        }
+      }
+    }).limit(20).populate('owner', 'name email').lean();
+    res.json({ success: true, data: restaurants });
+  } catch (err) {
+    next(err);
+  }
+};
+
 exports.createRestaurant = async (req, res, next) => {
   try {
-    const {
-      name,
-      description,
-      city,
-      cuisines,
-      priceRange,
-      menu,
-      nearby,
-      images,
-    } = req.body;
-
-    const restaurant = new Restaurant({
-      name,
-      description,
-      city,
-      cuisines: cuisines || [],
-      priceRange: priceRange || '₹₹',
-      menu: menu || [],
-      nearby: nearby || {},
-      images: images || [],
-      owner: req.user.id,
-    });
-
-    await restaurant.save();
-
-    res.status(201).json({
-      success: true,
-      message: 'Restaurant created successfully',
-      data: restaurant,
-    });
-  } catch (error) {
-    next(error);
+    const v = req.validated;
+    const doc = {
+      name: v.name,
+      description: v.description,
+      city: v.city,
+      location: { type: 'Point', coordinates: [v.longitude, v.latitude] },
+      cuisines: v.cuisines || [],
+      priceRange: v.priceRange,
+      owner: req.user._id,
+      nearby: { places: v.nearbyPlaces || [] },
+      openingHours: v.openingHours,
+      deliveryTime: v.deliveryTime,
+      minimumOrderValue: v.minimumOrderValue,
+      acceptOrders: v.acceptOrders !== false
+    };
+    const restaurant = await Restaurant.create(doc);
+    res.status(201).json({ success: true, data: restaurant });
+  } catch (err) {
+    next(err);
   }
 };
 
-// ==============================
-// GET ALL RESTAURANTS (CITY-BASED)
-// ==============================
-// @route   GET /api/v1/restaurants
-// @desc    Get restaurants by city with filters
-// @access  Public
-exports.getAllRestaurants = async (req, res, next) => {
-  try {
-    const { city, cuisines, priceRange, rating } = req.query;
-
-    const filter = { isActive: true };
-
-    if (city) {
-      filter.city = new RegExp(`^${city}$`, 'i');
-    }
-
-    if (cuisines) {
-      const cuisineArray = Array.isArray(cuisines)
-        ? cuisines
-        : cuisines.split(',');
-      filter.cuisines = { $in: cuisineArray };
-    }
-
-    if (priceRange) {
-      filter.priceRange = priceRange;
-    }
-
-    if (rating) {
-      filter.rating = { $gte: Number(rating) };
-    }
-
-    const restaurants = await Restaurant.find(filter)
-      .sort({ rating: -1 })
-      .limit(50);
-
-    res.status(200).json({
-      success: true,
-      count: restaurants.length,
-      data: restaurants,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// ==============================
-// GET RESTAURANT DETAILS
-// ==============================
-// @route   GET /api/v1/restaurants/:id
-// @desc    Get restaurant details
-// @access  Public
-exports.getRestaurantDetails = async (req, res, next) => {
-  try {
-    const restaurant = await Restaurant.findById(req.params.id).populate(
-      'owner',
-      'firstName lastName'
-    );
-
-    if (!restaurant) {
-      return res.status(404).json({
-        success: false,
-        message: 'Restaurant not found',
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      data: restaurant,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// ==============================
-// UPDATE RESTAURANT
-// ==============================
-// @route   PUT /api/v1/restaurants/:id
-// @desc    Update restaurant (menu, info)
-// @access  Private (Owner / Admin)
-exports.updateRestaurant = async (req, res, next) => {
+exports.addMenuItem = async (req, res, next) => {
   try {
     const restaurant = await Restaurant.findById(req.params.id);
+    if (!restaurant) return next(new ApiError(404, 'Restaurant not found'));
+    const isOwner = restaurant.owner && restaurant.owner.toString() === req.user._id.toString();
+    const isAdmin = req.user.role === 'admin';
+    if (!isOwner && !isAdmin) return next(new ApiError(403, 'Not authorized to add menu items'));
 
-    if (!restaurant) {
-      return res.status(404).json({
-        success: false,
-        message: 'Restaurant not found',
-      });
-    }
-
-    if (
-      restaurant.owner.toString() !== req.user.id &&
-      req.user.role !== 'admin'
-    ) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to update this restaurant',
-      });
-    }
-
-    const updatedRestaurant = await Restaurant.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      {
-        new: true,
-        runValidators: true,
-      }
-    );
-
-    res.status(200).json({
-      success: true,
-      message: 'Restaurant updated successfully',
-      data: updatedRestaurant,
+    const v = req.validated;
+    const item = await FoodItem.create({
+      restaurantId: restaurant._id,
+      name: v.name,
+      description: v.description,
+      category: v.category,
+      price: v.price,
+      isVegetarian: v.isVegetarian,
+      preparationTime: v.preparationTime
     });
-  } catch (error) {
-    next(error);
+    res.status(201).json({ success: true, data: item });
+  } catch (err) {
+    next(err);
   }
 };

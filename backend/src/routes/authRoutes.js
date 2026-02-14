@@ -1,20 +1,14 @@
-/**
- * Auth Routes
- */
-
 const express = require('express');
+const { validate } = require('../middleware/validate');
+const { protect } = require('../middleware/auth');
+const { signupSchema, loginSchema, refreshSchema } = require('../validators/authValidator');
+const { register, login, refreshToken, getMe } = require('../controllers/authController');
+
 const router = express.Router();
-const { verifyToken, authorize } = require('../middleware/auth');
-const validateRequest = require('../middleware/validation');
-const { signupSchema, loginSchema } = require('../validators/schemas');
-const authController = require('../controllers/authController');
 
-// Public routes
-router.post('/signup', validateRequest(signupSchema), authController.signup);
-router.post('/login', validateRequest(loginSchema), authController.login);
-router.post('/refresh', authController.refreshAccessToken);
-
-// Private routes
-router.get('/me', verifyToken, authController.getProfile);
+router.post('/register', validate(signupSchema), register);
+router.post('/login', validate(loginSchema), login);
+router.post('/refresh', validate(refreshSchema), refreshToken);
+router.get('/me', protect, getMe);
 
 module.exports = router;

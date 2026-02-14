@@ -1,0 +1,15 @@
+.tag {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: var(--card);
+  color: var(--text);
+  font-size: 0.9rem;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.tag:hover {
+  background: rgba(212, 175, 55, 0.1);
+  border-color: var(--accent);
+}

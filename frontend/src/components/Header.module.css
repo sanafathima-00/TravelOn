@@ -1,0 +1,51 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.logoWrap {
+  display: flex;
+  align-items: center;
+}
+
+.logoWrap span {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
+.logoImg {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+}
+
+.loginBtn {
+  padding: 0.5rem 1.25rem;
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  border-radius: 999px;
+  font-size: 0.9rem;
+  color: black;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.loginBtn:hover {
+  background: rgba(0, 0, 0, 0.8);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: var(--text);
+}
+
+.userWrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.userName {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
