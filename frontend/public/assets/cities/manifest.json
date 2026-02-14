@@ -1,0 +1,136 @@
+{
+  "bangalore": {
+    "hotels": {
+      "itc-gardenia": {
+        "ext": ".jpg",
+        "count": 2
+      },
+      "radisson-blu-atria": {
+        "ext": ".jpg",
+        "count": 3
+      },
+      "the-leela-palace": {
+        "ext": ".jpg",
+        "count": 2
+      }
+    },
+    "restaurants": {
+      "meghana-foods": {
+        "ext": ".jpg",
+        "count": 3
+      }
+    }
+  },
+  "chennai": {
+    "hotels": {
+      "hyatt-regency": {
+        "ext": ".jpg",
+        "count": 3
+      },
+      "itc-grand-chola": {
+        "ext": ".png",
+        "count": 2
+      },
+      "radisson-blu-grt": {
+        "ext": ".jpg",
+        "count": 2
+      },
+      "taj-coromandel": {
+        "ext": ".jpg",
+        "count": 3
+      },
+      "the-leela-palace": {
+        "ext": ".jpg",
+        "count": 2
+      }
+    },
+    "restaurants": {
+      "annalakshmi": {
+        "ext": ".jpg",
+        "count": 3
+      },
+      "murugan-idli-shop": {
+        "ext": ".jpg",
+        "count": 3
+      }
+    }
+  },
+  "delhi": {
+    "hotels": {
+      "taj-palace": {
+        "ext": ".jpg",
+        "count": 2
+      },
+      "the-imperial": {
+        "ext": ".jpg",
+        "count": 2
+      }
+    },
+    "restaurants": {
+      "bukhara": {
+        "ext": ".jpg",
+        "count": 4
+      },
+      "karims": {
+        "ext": ".jpg",
+        "count": 4
+      }
+    }
+  },
+  "hyderabad": {
+    "hotels": {
+      "itc-kohenur": {
+        "ext": ".jpg",
+        "count": 2
+      },
+      "novotel-hyderabad": {
+        "ext": ".jpg",
+        "count": 3
+      },
+      "park-hyatt-hyderabad": {
+        "ext": ".webp",
+        "count": 2
+      },
+      "taj-falaknuma-palace": {
+        "ext": ".jpg",
+        "count": 3
+      }
+    },
+    "restaurants": {
+      "bawarchi": {
+        "ext": ".jpg",
+        "count": 3
+      },
+      "paradise-biryani": {
+        "ext": ".jpg",
+        "count": 4
+      }
+    }
+  },
+  "mumbai": {
+    "hotels": {
+      "taj-palace-mumbai": {
+        "ext": ".jpg",
+        "count": 2
+      },
+      "the-oberoi": {
+        "ext": ".jpg",
+        "count": 2
+      },
+      "the-st-regis": {
+        "ext": ".jpg",
+        "count": 3
+      },
+      "trident-nariman-point": {
+        "ext": ".jpg",
+        "count": 3
+      }
+    },
+    "restaurants": {
+      "britannia-co": {
+        "ext": ".jpg",
+        "count": 4
+      }
+    }
+  }
+}
