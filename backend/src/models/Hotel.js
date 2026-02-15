@@ -1,13 +1,7 @@
-/**
- * Hotel Model (MVP-SAFE)
- * Represents hotels listed by city with nearby info and reviews
- */
-
 const mongoose = require('mongoose');
-
+console.log("NEW HOTEL MODEL ACTIVE");
 const hotelSchema = new mongoose.Schema(
   {
-    // Core Info
     name: {
       type: String,
       required: [true, 'Hotel name is required'],
@@ -25,12 +19,11 @@ const hotelSchema = new mongoose.Schema(
       index: true,
     },
 
+    // 🔥 Simplified address (matches seed)
     address: {
-      street: String,
-      zipCode: String,
+      type: String,
     },
 
-    // Pricing
     pricePerNightMin: {
       type: Number,
       required: true,
@@ -43,36 +36,17 @@ const hotelSchema = new mongoose.Schema(
       min: 0,
     },
 
-    // Media
-    images: [
-      {
-        url: String,
-        publicId: String,
-      },
-    ],
+    // Simplified images
+    images: {
+      type: [String],
+      default: [],
+    },
 
-    // Amenities
-    amenities: [
-      {
-        type: String,
-        enum: [
-          'WiFi',
-          'Pool',
-          'Gym',
-          'Parking',
-          'Restaurant',
-          'Bar',
-          'Spa',
-          'Airport Transfer',
-          'Pet Friendly',
-          'AC',
-          'TV',
-          'Laundry',
-        ],
-      },
-    ],
+    amenities: {
+      type: [String],
+      default: [],
+    },
 
-    // 🧠 NEARBY INFO (NO MAPS, NO GEO QUERIES)
     nearby: {
       restaurants: {
         type: [String],
@@ -88,14 +62,13 @@ const hotelSchema = new mongoose.Schema(
       },
     },
 
-    // Ownership
+    // 🔥 Owner NOT required anymore
     owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      required: false,
     },
 
-    // Ratings (derived from reviews)
     rating: {
       type: Number,
       min: 0,
@@ -108,7 +81,6 @@ const hotelSchema = new mongoose.Schema(
       default: 0,
     },
 
-    // Status
     isActive: {
       type: Boolean,
       default: true,
@@ -116,7 +88,6 @@ const hotelSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    indexes: [{ city: 1 }],
   }
 );
 

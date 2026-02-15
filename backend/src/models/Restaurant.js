@@ -1,12 +1,7 @@
-/**
- * Restaurant Model (MVP-SAFE)
- */
-
 const mongoose = require('mongoose');
 
 const restaurantSchema = new mongoose.Schema(
   {
-    // Core Info
     name: {
       type: String,
       required: [true, 'Restaurant name is required'],
@@ -23,30 +18,25 @@ const restaurantSchema = new mongoose.Schema(
       index: true,
     },
 
-    // Cuisine & Pricing
     cuisines: {
-      type: [String], // e.g. ["North Indian", "Chinese"]
+      type: [String],
       default: [],
     },
 
     priceRange: {
-      type: String, // ₹ / ₹₹ / ₹₹₹
+      type: String,
       enum: ['₹', '₹₹', '₹₹₹'],
       default: '₹₹',
     },
 
-    // Menu (EMBEDDED — SIMPLE)
     menu: [
       {
         name: String,
-        category: {
-          type: String, // Starter / Main / Dessert
-        },
+        category: String,
         price: Number,
       },
     ],
 
-    // Nearby Context (NO MAPS)
     nearby: {
       places: {
         type: [String],
@@ -58,20 +48,18 @@ const restaurantSchema = new mongoose.Schema(
       },
     },
 
-    images: [
-      {
-        url: String,
-      },
-    ],
+    images: {
+      type: [String],
+      default: [],
+    },
 
-    // Ownership
+    // 🔥 Owner NOT required anymore
     owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      required: false,
     },
 
-    // Ratings (derived later)
     rating: {
       type: Number,
       min: 0,
@@ -84,7 +72,6 @@ const restaurantSchema = new mongoose.Schema(
       default: 0,
     },
 
-    // Status
     isActive: {
       type: Boolean,
       default: true,
@@ -92,7 +79,6 @@ const restaurantSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    indexes: [{ city: 1 }],
   }
 );
 
