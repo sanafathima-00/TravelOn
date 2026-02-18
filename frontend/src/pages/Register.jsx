@@ -7,7 +7,9 @@ import styles from './Auth.module.css';
 export default function Register() {
   const navigate = useNavigate();
   const { user, login: authLogin } = useAuth();
-  const [name, setName] = useState('');
+
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -21,17 +23,31 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
     if (password.length < 6) {
       setError('Password must be at least 6 characters');
       return;
     }
+
     setLoading(true);
+
     try {
-      const res = await register(name, email, password);
-      authLogin(res.accessToken);
-      navigate('/', { replace: true });
+      const res = await register(
+        firstName,
+        lastName,
+        email,
+        password
+      );
+
+      if (res.accessToken) {
+        authLogin(res.accessToken);
+        navigate('/', { replace: true });
+      } else {
+        setError('Invalid response from server');
+      }
     } catch (err) {
-      setError(err.message || 'Registration failed');
+      console.error('Register error:', err);
+      setError(err.message || err.data?.message || 'Registration failed');
     } finally {
       setLoading(false);
     }
@@ -41,17 +57,28 @@ export default function Register() {
     <div className={styles.page}>
       <div className={styles.card}>
         <h1 className={styles.title}>Register</h1>
+
         <form onSubmit={handleSubmit} className={styles.form}>
-          <label className={styles.label}>Name</label>
+          <label className={styles.label}>First Name</label>
           <input
             type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
             className={styles.input}
             required
             minLength={2}
-            autoComplete="name"
           />
+
+          <label className={styles.label}>Last Name</label>
+          <input
+            type="text"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            className={styles.input}
+            required
+            minLength={2}
+          />
+
           <label className={styles.label}>Email</label>
           <input
             type="email"
@@ -59,8 +86,8 @@ export default function Register() {
             onChange={(e) => setEmail(e.target.value)}
             className={styles.input}
             required
-            autoComplete="email"
           />
+
           <label className={styles.label}>Password (min 6)</label>
           <input
             type="password"
@@ -69,13 +96,15 @@ export default function Register() {
             className={styles.input}
             required
             minLength={6}
-            autoComplete="new-password"
           />
+
           {error && <p className={styles.error}>{error}</p>}
+
           <button type="submit" className={styles.submitBtn} disabled={loading}>
             {loading ? 'Creating account…' : 'Create account'}
           </button>
         </form>
+
         <p className={styles.footer}>
           Already have an account? <Link to="/login">Login</Link>
         </p>

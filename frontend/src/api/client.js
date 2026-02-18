@@ -29,14 +29,20 @@ export async function api(endpoint, options = {}) {
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    const err = new Error(data.message || 'Request failed');
+    const errorMessage = data.message || data.error || `Request failed with status ${res.status}`;
+    const err = new Error(errorMessage);
     err.status = res.status;
     err.data = data;
+    console.error(`API Error [${res.status}]:`, errorMessage, data);
     throw err;
   }
 
   return data;
 }
+
+/* ============================= */
+/* HOTELS */
+/* ============================= */
 
 export function hotelsByCity(city) {
   return api(`/hotels?city=${encodeURIComponent(city)}`);
@@ -57,6 +63,10 @@ export function createHotelReview(id, body) {
   });
 }
 
+/* ============================= */
+/* RESTAURANTS */
+/* ============================= */
+
 export function restaurantsByCity(city) {
   return api(`/restaurants?city=${encodeURIComponent(city)}`);
 }
@@ -64,6 +74,10 @@ export function restaurantsByCity(city) {
 export function restaurantById(id) {
   return api(`/restaurants/${id}`);
 }
+
+/* ============================= */
+/* LOCAL POSTS */
+/* ============================= */
 
 export function localPostsByCity(city) {
   return api(`/local-posts?city=${encodeURIComponent(city)}`);
@@ -82,6 +96,10 @@ export function createLocalPost(body) {
   });
 }
 
+/* ============================= */
+/* AUTH */
+/* ============================= */
+
 export function login(email, password) {
   return api('/auth/login', {
     method: 'POST',
@@ -89,10 +107,13 @@ export function login(email, password) {
   });
 }
 
-export function register(name, email, password, role = 'tourist') {
+export function register(firstName, lastName, email, password, role = 'tourist') {
+  // Send BOTH shapes for compatibility with deployed backends.
+  // Some environments still validate `{ name }`, while current UI captures first/last.
+  const name = `${firstName} ${lastName}`.trim();
   return api('/auth/register', {
     method: 'POST',
-    body: JSON.stringify({ name, email, password, role }),
+    body: JSON.stringify({ name, firstName, lastName, email, password, role }),
   });
 }
 

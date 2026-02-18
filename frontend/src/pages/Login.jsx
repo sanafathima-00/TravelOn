@@ -25,10 +25,15 @@ export default function Login() {
     setLoading(true);
     try {
       const res = await login(email, password);
-      authLogin(res.accessToken);
-      navigate(redirect, { replace: true });
+      if (res.accessToken) {
+        authLogin(res.accessToken);
+        navigate(redirect, { replace: true });
+      } else {
+        setError('Invalid response from server');
+      }
     } catch (err) {
-      setError(err.message || 'Login failed');
+      console.error('Login error:', err);
+      setError(err.message || err.data?.message || 'Login failed');
     } finally {
       setLoading(false);
     }

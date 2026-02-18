@@ -11,26 +11,51 @@ const generateTokens = (userId) => {
     process.env.JWT_SECRET,
     { expiresIn: accessTokenExpiry }
   );
+
   const refresh = jwt.sign(
     { id: userId },
     process.env.JWT_REFRESH_SECRET,
     { expiresIn: refreshTokenExpiry }
   );
+
   return { accessToken: access, refreshToken: refresh };
+};
+
+const getDisplayName = (user) => {
+  return `${user.firstName} ${user.lastName}`.trim();
 };
 
 exports.register = async (req, res, next) => {
   try {
-    const { name, email, password, role } = req.validated;
+    const { firstName, lastName, email, password, role } = req.validated;
+
     const existing = await User.findOne({ email });
-    if (existing) return next(new ApiError(400, 'Email already registered'));
-    const user = await User.create({ name, email, password, role });
+    if (existing) {
+      return next(new ApiError(400, 'Email already registered'));
+    }
+
+    const user = await User.create({
+      firstName,
+      lastName,
+      email,
+      password,
+      role
+    });
+
     const tokens = generateTokens(user._id);
+
     res.status(201).json({
       success: true,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role },
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role
+      },
       ...tokens
     });
+
   } catch (err) {
     next(err);
   }
@@ -39,16 +64,33 @@ exports.register = async (req, res, next) => {
 exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.validated;
+
     const user = await User.findOne({ email }).select('+password');
-    if (!user || !(await user.comparePassword(password))) {
+
+    if (!user) {
       return next(new ApiError(401, 'Invalid email or password'));
     }
+
+    const isMatch = await user.matchPassword(password);
+
+    if (!isMatch) {
+      return next(new ApiError(401, 'Invalid email or password'));
+    }
+
     const tokens = generateTokens(user._id);
+
     res.json({
       success: true,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role },
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role
+      },
       ...tokens
     });
+
   } catch (err) {
     next(err);
   }
@@ -57,11 +99,25 @@ exports.login = async (req, res, next) => {
 exports.refreshToken = async (req, res, next) => {
   try {
     const { refreshToken } = req.validated;
-    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+
+    const decoded = jwt.verify(
+      refreshToken,
+      process.env.JWT_REFRESH_SECRET
+    );
+
     const user = await User.findById(decoded.id);
-    if (!user) return next(new ApiError(401, 'User not found'));
+
+    if (!user) {
+      return next(new ApiError(401, 'User not found'));
+    }
+
     const tokens = generateTokens(user._id);
-    res.json({ success: true, ...tokens });
+
+    res.json({
+      success: true,
+      ...tokens
+    });
+
   } catch (err) {
     next(err);
   }
@@ -70,7 +126,18 @@ exports.refreshToken = async (req, res, next) => {
 exports.getMe = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
-    res.json({ success: true, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
+
+    res.json({
+      success: true,
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role
+      }
+    });
+
   } catch (err) {
     next(err);
   }
