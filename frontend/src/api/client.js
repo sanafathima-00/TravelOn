@@ -120,3 +120,23 @@ export function register(firstName, lastName, email, password, role = 'tourist')
 export function getMe() {
   return api('/auth/me');
 }
+
+/* ============================= */
+/* BANGALORE PLACES */
+/* ============================= */
+
+export function bangalorePlaces(category) {
+  const query = category ? `?category=${encodeURIComponent(category)}` : '';
+  return api(`/bangalore/places${query}`);
+}
+
+export function bangalorePlaceById(id) {
+  return api(`/bangalore/places/${id}`);
+}
+
+export function createBangalorePlaceReview(id, body) {
+  return api(`/bangalore/places/${id}/review`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}

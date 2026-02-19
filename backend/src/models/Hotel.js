@@ -1,94 +1,99 @@
 const mongoose = require('mongoose');
-console.log("NEW HOTEL MODEL ACTIVE");
+
+const reviewSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    rating: {
+      type: Number,
+      required: true,
+      min: 1,
+      max: 5
+    },
+    title: {
+      type: String
+    },
+    comment: {
+      type: String,
+      required: true
+    }
+  },
+  { timestamps: true }
+);
+
 const hotelSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, 'Hotel name is required'],
-      trim: true,
+      required: true,
+      trim: true
     },
 
     description: {
       type: String,
-      required: [true, 'Hotel description is required'],
+      required: true
     },
 
     city: {
       type: String,
-      required: [true, 'City is required'],
-      index: true,
+      required: true,
+      index: true
     },
 
-    // 🔥 Simplified address (matches seed)
-    address: {
-      type: String,
-    },
+    address: String,
 
     pricePerNightMin: {
       type: Number,
-      required: true,
-      min: 0,
+      required: true
     },
 
     pricePerNightMax: {
       type: Number,
-      required: true,
-      min: 0,
+      required: true
     },
 
-    // Simplified images
     images: {
       type: [String],
-      default: [],
+      default: []
     },
 
     amenities: {
       type: [String],
-      default: [],
+      default: []
     },
 
     nearby: {
-      restaurants: {
-        type: [String],
-        default: [],
-      },
-      transport: {
-        type: [String],
-        default: [],
-      },
-      places: {
-        type: [String],
-        default: [],
-      },
+      restaurants: { type: [String], default: [] },
+      transport: { type: [String], default: [] },
+      places: { type: [String], default: [] }
     },
 
-    // 🔥 Owner NOT required anymore
     owner: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: false,
+      ref: 'User'
     },
+
+    reviews: [reviewSchema],
 
     rating: {
       type: Number,
-      min: 0,
-      max: 5,
-      default: 0,
+      default: 0
     },
 
     reviewCount: {
       type: Number,
-      default: 0,
+      default: 0
     },
 
     isActive: {
       type: Boolean,
-      default: true,
-    },
+      default: true
+    }
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
 module.exports = mongoose.model('Hotel', hotelSchema);

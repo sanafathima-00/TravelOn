@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import HorizontalCardRow from '../components/HorizontalCardRow';
 import HotelCard from '../components/HotelCard';
+import BangaloreCitySections from './BangaloreCitySections';
 import { getCityBySlug } from '../config/cities';
 import { getCityHeroImageUrl, getPlaceholderUrl } from '../utils/imageFallback';
 import { filterHotelsWithImages } from '../utils/assetManifest';
@@ -34,6 +35,7 @@ export default function City() {
   const hotelsWithImages = filterHotelsWithImages(hotels, citySlug, manifest);
 
   const heroImage = getCityHeroImageUrl(city.slug);
+  const isBangalore = city.slug === 'bangalore';
 
   return (
     <div className={styles.page}>
@@ -55,7 +57,7 @@ export default function City() {
         {loading && <p className={styles.status}>Loading…</p>}
         {error && <p className={styles.error}>{error}</p>}
 
-        {!loading && !error && (
+        {!loading && !error && !isBangalore && (
           <HorizontalCardRow title="Hotels">
             {hotelsWithImages.map((h) => (
               <HotelCard
@@ -66,6 +68,14 @@ export default function City() {
               />
             ))}
           </HorizontalCardRow>
+        )}
+
+        {!loading && !error && isBangalore && (
+          <BangaloreCitySections
+            hotels={hotelsWithImages}
+            cityName={displayName}
+            manifest={manifest}
+          />
         )}
       </div>
     </div>

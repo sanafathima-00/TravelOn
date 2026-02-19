@@ -3,6 +3,7 @@ import Home from './pages/Home';
 import City from './pages/City';
 import HotelDetail from './pages/HotelDetail';
 import PlaceDetail from './pages/PlaceDetail';
+import BangalorePlaceDetail from './pages/BangalorePlaceDetail';
 import Login from './pages/Login';
 import Register from './pages/Register';
 
@@ -13,6 +14,7 @@ export default function App() {
       <Route path="/city/:cityName" element={<City />} />
       <Route path="/hotel/:id" element={<HotelDetail />} />
       <Route path="/place/:city/:type/:slug" element={<PlaceDetail />} />
+      <Route path="/bangalore/places/:id" element={<BangalorePlaceDetail />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
     </Routes>
