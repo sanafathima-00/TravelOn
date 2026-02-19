@@ -24,7 +24,6 @@ const HOTELS_BY_CITY = {
     'Taj MG'
   ],
   Mumbai: [
-    'ITC Maratha',
     'Taj Palace Mumbai',
     'The Oberoi',
     'The St. Regis',
@@ -33,7 +32,6 @@ const HOTELS_BY_CITY = {
   Hyderabad: [
     'ITC Kohenur',
     'Novotel Hyderabad',
-    'Park Hyatt Hyderabad',
     'Taj Falaknuma Palace',
     'Trident Hyderabad'
   ],
@@ -46,7 +44,6 @@ const HOTELS_BY_CITY = {
   ],
   Chennai: [
     'Hyatt Regency',
-    'ITC Grand Chola',
     'Leela Chennai',
     'Radisson Blu GRT',
     'Taj Coromandel'
