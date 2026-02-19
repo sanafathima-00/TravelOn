@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faStar } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../context/AuthContext';
-import { bangalorePlaceById, createBangalorePlaceReview } from '../api/client';
+import { bangalorePlaceById, bangalorePlaces, createBangalorePlaceReview } from '../api/client';
 import { getBangaloreCategoryImage, getPlaceholderUrl } from '../utils/imageFallback';
 import WriteReviewModal from '../components/WriteReviewModal';
 import styles from './HotelDetail.module.css';
@@ -15,16 +15,29 @@ export default function BangalorePlaceDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+
   const [place, setPlace] = useState(null);
+  const [categoryList, setCategoryList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
+
     setLoading(true);
+
     bangalorePlaceById(id)
-      .then((r) => setPlace(r.data))
+      .then((r) => {
+        const currentPlace = r.data;
+        setPlace(currentPlace);
+
+        // fetch full category list to calculate index
+        return bangalorePlaces(currentPlace.category);
+      })
+      .then((r) => {
+        setCategoryList(Array.isArray(r.data) ? r.data : []);
+      })
       .catch((err) => {
         setError(err.message || 'Place not found');
         setPlace(null);
@@ -38,20 +51,29 @@ export default function BangalorePlaceDetail() {
   };
 
   if (loading) {
-    return <div className={styles.wrap}><p className={styles.status}>Loading…</p></div>;
+    return (
+      <div className={styles.wrap}>
+        <p className={styles.status}>Loading…</p>
+      </div>
+    );
   }
 
   if (error || !place) {
     return (
       <div className={styles.wrap}>
         <p className={styles.error}>{error}</p>
-        <button className={styles.backBtn} onClick={() => navigate(-1)}>Back</button>
+        <button className={styles.backBtn} onClick={() => navigate(-1)}>
+          Back
+        </button>
       </div>
     );
   }
 
+  // 🔥 derive correct index
+  const index = categoryList.findIndex(p => p._id === place._id);
   const heroImage =
-    getBangaloreCategoryImage(place.category, 1) || getPlaceholderUrl();
+    getBangaloreCategoryImage(place.category, index + 1) ||
+    getPlaceholderUrl();
 
   const reviews = Array.isArray(place.reviews) ? place.reviews : [];
 
@@ -64,7 +86,11 @@ export default function BangalorePlaceDetail() {
       </nav>
 
       <section className={styles.gallery}>
-        <img src={heroImage} alt={place.name} className={styles.galleryImg} />
+        <img
+          src={heroImage}
+          alt={place.name}
+          className={styles.galleryImg}
+        />
       </section>
 
       <div className={`${styles.content} page-padding`}>
