@@ -1,8 +1,15 @@
 /**
- * Image URL helpers for new structure:
+ * Image URL helpers
+ *
+ * Structure:
  * /assets/cities/<city>/hotels/<slug>/1.jpg
  * /assets/cities/<city>/restaurants/<slug>/1.jpg
  * /assets/cities/<city>/hero.jpg
+ *
+ * Bangalore structured images:
+ * /assets/cities/bangalore/hotels/1.jpg
+ * /assets/cities/bangalore/local-eateries/1.jpg
+ * etc.
  */
 
 export function slugify(text) {
@@ -21,8 +28,7 @@ export function getHotelImageUrl(hotel, cityName, manifest = null) {
   const city = slugify(cityName);
 
   /* ===========================
-     🔥 SINGLE CHANGE HERE
-     If Bangalore → use indexed images
+     Bangalore uses indexed images
   =========================== */
   if (city === 'bangalore') {
     const HOTEL_ORDER = [
@@ -37,11 +43,11 @@ export function getHotelImageUrl(hotel, cityName, manifest = null) {
     const index = HOTEL_ORDER.indexOf(slug);
 
     if (index !== -1) {
-      return `/assets/bangalore/hotels/${index + 1}.jpg`;
+      return `/assets/cities/bangalore/hotels/${index + 1}.jpg`;
     }
   }
 
-  /* Default (other cities) */
+  /* Default structure for other cities */
   const hotelSlug = slugify(hotel.name);
   const meta = manifest?.hotels?.[hotelSlug];
   const ext = (typeof meta === 'object' ? meta?.ext : meta) ?? '.jpg';
@@ -64,7 +70,6 @@ export function getCityHeroImageUrl(citySlug) {
   if (!citySlug) return getPlaceholderUrl();
 
   const city = slugify(citySlug);
-
   return `/assets/cities/${city}/hero.jpg`;
 }
 
@@ -72,6 +77,12 @@ export function getGalleryImageUrl(hotel, index = 1, manifest = null) {
   if (!hotel?.name || !hotel?.city) return getPlaceholderUrl();
 
   const city = slugify(hotel.city);
+
+  /* Bangalore gallery (indexed) */
+  if (city === 'bangalore') {
+    return `/assets/cities/bangalore/hotels/${index}.jpg`;
+  }
+
   const hotelSlug = slugify(hotel.name);
   const meta = manifest?.hotels?.[hotelSlug];
   const ext = (typeof meta === 'object' ? meta?.ext : meta) ?? '.jpg';
@@ -83,7 +94,7 @@ export function getPlaceImageUrl(citySlug, type, slug, manifest = null, index = 
   if (!citySlug || !type || !slug) return getPlaceholderUrl();
 
   const city = slugify(citySlug);
-  const slugNorm = slugify(slug);
+
   const bucket =
     type === 'restaurant'
       ? 'restaurants'
@@ -91,6 +102,7 @@ export function getPlaceImageUrl(citySlug, type, slug, manifest = null, index = 
       ? 'places'
       : 'transport';
 
+  const slugNorm = slugify(slug);
   const meta = manifest?.[city]?.[bucket]?.[slugNorm];
   const ext = (typeof meta === 'object' ? meta?.ext : meta) ?? '.jpg';
 
@@ -102,6 +114,7 @@ export function getPlaceImageCount(manifest, citySlug, type, slug) {
 
   const slugNorm = slugify(slug);
   const city = slugify(citySlug);
+
   const bucket =
     type === 'restaurant'
       ? 'restaurants'
@@ -130,5 +143,6 @@ export function getBangaloreCategoryImage(category, index = 1) {
   if (!folder) return getPlaceholderUrl();
 
   const safeIndex = Number.isFinite(index) && index > 0 ? index : 1;
-  return `/assets/bangalore/${folder}/${safeIndex}.jpg`;
+
+  return `/assets/cities/bangalore/${folder}/${safeIndex}.jpg`;
 }
